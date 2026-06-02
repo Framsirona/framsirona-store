@@ -1,0 +1,31 @@
+# Netlify Configuration
+# Build command and environment variables are managed in the Netlify UI.
+# This file configures build behavior and feature settings.
+
+[build]
+# Command runs from netlify UI: npm run build
+# Publish directory is set in netlify UI: dist
+
+[[redirects]]
+# Catch-all redirect for SPA routing
+from = "/*"
+to = "/index.html"
+status = 200
+
+# Security headers
+[[headers]]
+for = "/*"
+[headers.values]
+# Prevent MIME type sniffing
+X-Content-Type-Options = "nosniff"
+# Enable XSS protection
+X-XSS-Protection = "1; mode=block"
+# Frame options
+X-Frame-Options = "SAMEORIGIN"
+# Referrer policy
+Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Secrets scanning configuration
+# Omit keys that are not actual secrets (public values like preset names)
+[build.environment]
+SECRETS_SCAN_OMIT_KEYS = "VITE_CLOUDINARY_UPLOAD_PRESET"
