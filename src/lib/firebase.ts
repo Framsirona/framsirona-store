@@ -681,8 +681,12 @@ export const deleteCategoryFromDB = async (id: string): Promise<boolean> => {
 // Direct upload to Cloudinary using their unsigned preset
 export const uploadFileToStorage = async (file: File, folder: 'previews' | 'digital_downloads'): Promise<string> => {
   console.log("Upload started");
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'drgxvf0rz';
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'Framsirona Store (Unsigned)';
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error('Cloudinary environment variables are required: VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET');
+  }
 
   console.log(`[Cloudinary Unsigned Upload] Uploading "${file.name}" to cloud: ${cloudName} preset: ${uploadPreset}`);
   const formData = new FormData();
