@@ -1,0 +1,6 @@
+{
+  "name": "Framsirona Store",
+  "description": "A modern professional digital products marketplace website specializing in design templates, Canva kits, ebooks, and branding assets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
