@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Products Collection Rule
+    match /products/{productId} {
+      // Anyone can display and browse products
+      allow read: if true;
+      
+      // Since the prompt explicitly bans Firebase Authentication and requests a simple password admin dashboard,
+      // we allow writing for products to facilitate full CRUD operation from the admin panel.
+      allow write: if true;
+    }
+
+    // Categories Collection Rule
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Contacts Collection Rule
+    match /contacts/{contactId} {
+      // General public and guests are allowed to send messages
+      allow create: if true;
+      
+      // Admin dashboard can read and manage client inquiries
+      allow read, update, delete: if true;
+    }
+
+    // Orders Collection Rule
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    // Download Logs Rule
+    match /download_logs/{logId} {
+      allow read, write: if true;
+    }
+
+    // Webhook Logs Rule
+    match /webhook_logs/{whId} {
+      allow read, write: if true;
+    }
+
+    // Websites Collection Rule
+    match /websites/{websiteId} {
+      allow read, write: if true;
+    }
+
+    // Affiliates Collection Rule
+    match /affiliates/{affiliateId} {
+      allow read, write: if true;
+    }
+  }
+}

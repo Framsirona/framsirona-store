@@ -1,0 +1,18 @@
+# SEO Crawler Directives for Framsirona Store
+User-agent: *
+Allow: /
+Allow: /shop
+Allow: /categories
+Allow: /about
+Allow: /contact
+Allow: /faq
+
+# Protected payment portals and administration paths
+Disallow: /admin
+Disallow: /checkout-sandbox
+Disallow: /payment-success
+Disallow: /payment-cancel
+Disallow: /secure-download
+
+# Link to sitemap file
+Sitemap: https://framsirona.store/sitemap.xml

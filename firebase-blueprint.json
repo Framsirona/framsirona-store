@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "product": {
+      "title": "Product",
+      "description": "A digital product available in the Framsirona Store",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The dynamic name of the template/resource"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of contents and specifications"
+        },
+        "category": {
+          "type": "string",
+          "description": "One of the predefined digital product categories"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price in USD"
+        },
+        "previewImages": {
+          "type": "array",
+          "description": "An array of image URLs representing visual previews of the product"
+        },
+        "downloadFile": {
+          "type": "string",
+          "description": "The URL or resource path for downloading the digital purchase"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO format date string of the resource addition"
+        }
+      },
+      "required": ["title", "description", "category", "price", "previewImages", "downloadFile", "createdAt"]
+    },
+    "category": {
+      "title": "CategoryInfo",
+      "description": "Predefined digital product categories in the Framsirona Store",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The category name identifier"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of templates under this category"
+        },
+        "icon": {
+          "type": "string",
+          "description": "The Lucide icon name"
+        }
+      },
+      "required": ["name", "description", "icon"]
+    },
+    "contactMessage": {
+      "title": "ContactMessage",
+      "description": "Customer inquiry submission form data",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "subject", "message", "createdAt"]
+    },
+    "digitalOrder": {
+      "title": "DigitalOrder",
+      "description": "Customer completed transaction for automated delivery",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "productType": { "type": "string" },
+        "productTitle": { "type": "string" },
+        "buyerEmail": { "type": "string" },
+        "pricePaid": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string" },
+        "paymentGateway": { "type": "string" },
+        "paymentIntentId": { "type": "string" },
+        "downloadToken": { "type": "string" },
+        "tokenExpiresAt": { "type": "string" }
+      },
+      "required": ["productId", "productType", "productTitle", "buyerEmail", "pricePaid", "createdAt", "status", "paymentGateway", "paymentIntentId", "downloadToken", "tokenExpiresAt"]
+    },
+    "downloadLog": {
+      "title": "DownloadLog",
+      "description": "Record of a digital item download attempt with secure expiration verification",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productTitle": { "type": "string" },
+        "buyerEmail": { "type": "string" },
+        "ipAddress": { "type": "string" },
+        "userAgent": { "type": "string" },
+        "downloadedAt": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["orderId", "productId", "productTitle", "buyerEmail", "ipAddress", "userAgent", "downloadedAt", "status"]
+    },
+    "webhookLog": {
+      "title": "WebhookLog",
+      "description": "Inbound API checkout simulation transaction logger entries",
+      "type": "object",
+      "properties": {
+        "receivedAt": { "type": "string" },
+        "event": { "type": "string" },
+        "gateway": { "type": "string" },
+        "payload": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["receivedAt", "event", "gateway", "payload", "status"]
+    },
+    "websiteTemplate": {
+      "title": "WebsiteTemplate",
+      "description": "A high-fidelity website design template",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "previewImages": { "type": "array" },
+        "liveDemoUrl": { "type": "string" },
+        "techStack": { "type": "array" },
+        "downloadFile": { "type": "string" },
+        "features": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "paymentLink": { "type": "string" }
+      },
+      "required": ["title", "description", "category", "price", "previewImages", "liveDemoUrl", "techStack", "downloadFile", "features", "createdAt"]
+    },
+    "affiliateProduct": {
+      "title": "AffiliateProduct",
+      "description": "Handpicked creator tool recommendations with affiliate monetization setups",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "amazonLink": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "description", "category", "image", "amazonLink", "createdAt"]
+    }
+  },
+  "firestore": {
+    "products/{productId}": {
+      "schema": "product",
+      "description": "Primary store of digital download templates and materials"
+    },
+    "categories/{categoryId}": {
+      "schema": "category",
+      "description": "Predefined digital product categories in the Framsirona Store"
+    },
+    "contacts/{contactId}": {
+      "schema": "contactMessage",
+      "description": "Store customer contact inquiries and feedback messages"
+    },
+    "orders/{orderId}": {
+      "schema": "digitalOrder",
+      "description": "Completed customer purchases with decaying material access keys"
+    },
+    "download_logs/{logId}": {
+      "schema": "downloadLog",
+      "description": "Secured tracking list logging customer download attempts"
+    },
+    "webhook_logs/{whId}": {
+      "schema": "webhookLog",
+      "description": "Simulation and live API webhook execution logs"
+    },
+    "websites/{websiteId}": {
+      "schema": "websiteTemplate",
+      "description": "Dynamic custom website template resources"
+    },
+    "affiliates/{affiliateId}": {
+      "schema": "affiliateProduct",
+      "description": "Curated list of monetization and creator affiliate products"
+    }
+  }
+}
