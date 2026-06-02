@@ -679,14 +679,32 @@ export const deleteCategoryFromDB = async (id: string): Promise<boolean> => {
 
 // DIGITAL STORAGE INTERACTION (Cloudinary Direct Unsigned Upload)
 // Direct upload to Cloudinary using their unsigned preset
+// NOTE: For Netlify deployment, set these environment variables in Site Settings → Environment Variables:
+//   - VITE_CLOUDINARY_CLOUD_NAME
+//   - VITE_CLOUDINARY_UPLOAD_PRESET
+// Important: Do NOT include quotes in Netlify env variable values. Redeploy after changing env variables.
 export const uploadFileToStorage = async (file: File, folder: 'previews' | 'digital_downloads'): Promise<string> => {
   console.log("Upload started");
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  let cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
+  let uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
-  if (!cloudName || !uploadPreset) {
-    throw new Error('Cloudinary environment variables are required: VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET');
+  // Trim whitespace from environment variables
+  cloudName = cloudName.trim();
+  uploadPreset = uploadPreset.trim();
+
+  // Strict validation: ensure both variables are present and valid
+  if (!cloudName || !uploadPreset || cloudName === 'undefined' || uploadPreset === 'undefined') {
+    const errorMsg = 'Cloudinary config missing or not loaded from environment variables. ' +
+      'Ensure VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET are set in Netlify Site Settings → Environment Variables.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
+
+  // Debug logging to help diagnose configuration issues
+  console.log("CLOUDINARY DEBUG:", {
+    cloudName,
+    uploadPreset
+  });
 
   console.log(`[Cloudinary Unsigned Upload] Uploading "${file.name}" to cloud: ${cloudName} preset: ${uploadPreset}`);
   const formData = new FormData();
@@ -702,7 +720,7 @@ export const uploadFileToStorage = async (file: File, folder: 'previews' | 'digi
   if (!response.ok) {
     const errorText = await response.text();
     console.error('[Cloudinary Upload Error Response]', errorText);
-    throw new Error(`Cloudinary responded with status ${response.status}: ${errorText}`);
+    throw new Error(`Cloudinary upload failed. Check cloud name and upload preset in Netlify env variables. Status: ${response.status}, Details: ${errorText}`);
   }
 
   const data = await response.json();
