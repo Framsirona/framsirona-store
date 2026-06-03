@@ -73,10 +73,10 @@ try {
     isSupabaseAvailable = true;
     console.log("Supabase initialized successfully for large file storage.");
   } else {
-    console.warn("Supabase not configured. Large file uploads will fall back to Cloudinary. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable Supabase storage.");
+    console.warn("Supabase not configured. Storage uploads will fail until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are provided.");
   }
 } catch (error) {
-  console.error("Supabase failed to initialize. Large file uploads will use Cloudinary fallback.", error);
+  console.error("Supabase failed to initialize. Storage uploads require Supabase configuration.", error);
 }
 
 // Ensure database fallback works seamlessly
@@ -698,28 +698,28 @@ export const deleteCategoryFromDB = async (id: string): Promise<boolean> => {
   return found;
 };
 
-// DIGITAL STORAGE INTERACTION (Supabase Storage for large files)
-// Upload files larger than 10MB to Supabase Storage
-// Files are stored in the 'framsirona-files' bucket and returned as public URLs
-const uploadFileToSupabase = async (file: File): Promise<string> => {
+// DIGITAL STORAGE INTERACTION (Supabase Storage for all file uploads)
+// Upload files to Supabase Storage using dedicated buckets.
+const uploadFileToSupabase = async (file: File, folder: 'previews' | 'digital_downloads'): Promise<string> => {
   if (!isSupabaseAvailable || !supabaseClient) {
-    throw new Error('Supabase not configured. Cannot upload large files. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    throw new Error('Supabase not configured. Cannot upload files. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
 
+  const bucketName = folder === 'previews' ? 'product-previews' : 'digital-products';
+  const isPreview = folder === 'previews';
+  const timestamp = Date.now();
+  const randomId = Math.random().toString(36).substring(2, 9);
+  const fileExtension = file.name.split('.').pop() || 'bin';
+  const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const storagePath = `${folder}/${timestamp}-${randomId}-${cleanFileName}`;
+
   try {
-    console.log(`[Supabase Upload] Uploading "${file.name}" (${(file.size / 1024 / 1024).toFixed(2)}MB) to Supabase Storage`);
-    
-    // Generate unique file path using timestamp and random string to prevent collisions
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 9);
-    const fileExtension = file.name.split('.').pop() || 'bin';
-    const uniquePath = `${timestamp}-${randomId}.${fileExtension}`;
-    
-    // Upload to Supabase Storage
+    console.log(`[Supabase Upload] Uploading "${file.name}" to bucket "${bucketName}" as "${storagePath}"`);
+
     const { data, error } = await supabaseClient.storage
-      .from('framsirona-files')
-      .upload(uniquePath, file, {
-        cacheControl: '3600',
+      .from(bucketName)
+      .upload(storagePath, file, {
+        cacheControl: isPreview ? '3600' : '3600',
         upsert: false
       });
 
@@ -729,21 +729,25 @@ const uploadFileToSupabase = async (file: File): Promise<string> => {
     }
 
     if (!data || !data.path) {
-      throw new Error('Supabase upload succeeded but no file path returned');
+      throw new Error('Supabase upload succeeded but no file path was returned');
     }
 
-    // Generate public URL for the uploaded file
-    const { data: publicUrlData } = supabaseClient.storage
-      .from('framsirona-files')
-      .getPublicUrl(uniquePath);
+    if (isPreview) {
+      const { data: publicUrlData } = supabaseClient.storage
+        .from(bucketName)
+        .getPublicUrl(storagePath);
 
-    const publicUrl = publicUrlData?.publicUrl;
-    if (!publicUrl) {
-      throw new Error('Failed to generate public URL from Supabase');
+      const publicUrl = publicUrlData?.publicUrl;
+      if (!publicUrl) {
+        throw new Error('Failed to generate public URL from Supabase');
+      }
+
+      console.log(`[Supabase Upload Success] Public URL: ${publicUrl}`);
+      return publicUrl;
     }
 
-    console.log(`[Supabase Upload Success] File URL: ${publicUrl}`);
-    return publicUrl;
+    console.log(`[Supabase Upload Success] Stored path: ${data.path}`);
+    return data.path;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('[Supabase Upload Error]', errorMsg);
@@ -751,84 +755,19 @@ const uploadFileToSupabase = async (file: File): Promise<string> => {
   }
 };
 
-// DIGITAL STORAGE INTERACTION (Cloudinary Direct Unsigned Upload)
-// Direct upload to Cloudinary using their unsigned preset
-// NOTE: For Netlify deployment, set these environment variables in Site Settings → Environment Variables:
-//   - VITE_CLOUDINARY_CLOUD_NAME
-//   - VITE_CLOUDINARY_UPLOAD_PRESET
-// For Supabase large file storage:
-//   - VITE_SUPABASE_URL
-//   - VITE_SUPABASE_ANON_KEY
-// Important: Do NOT include quotes in Netlify env variable values. Redeploy after changing env variables.
 export const uploadFileToStorage = async (file: File, folder: 'previews' | 'digital_downloads'): Promise<string> => {
-  console.log("Upload started");
-  
-  const MAX_CLOUDINARY_SIZE = 10 * 1024 * 1024; // 10MB limit for Cloudinary
-  const isLargeFile = file.size > MAX_CLOUDINARY_SIZE;
-  const isImage = file.type.startsWith('image/');
-  
-  // Route large files (ZIPs, PSDs, templates) to Supabase if available
-  if (isLargeFile && !isImage && isSupabaseAvailable) {
-    try {
-      console.log(`[File Router] File "${file.name}" is ${(file.size / 1024 / 1024).toFixed(2)}MB. Routing to Supabase Storage.`);
-      return await uploadFileToSupabase(file);
-    } catch (error) {
-      console.warn(`[File Router] Supabase upload failed, attempting Cloudinary fallback for "${file.name}"`, error);
-      // Fall through to Cloudinary as backup
-    }
+  console.log('Upload started');
+
+  if (!isSupabaseAvailable || !supabaseClient) {
+    throw new Error('Supabase storage is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
   }
-  
-  // Use Cloudinary for images and files under 10MB
-  let cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
-  let uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
-  // Trim whitespace from environment variables
-  cloudName = cloudName.trim();
-  uploadPreset = uploadPreset.trim();
-
-  // Strict validation: ensure both variables are present and valid
-  if (!cloudName || !uploadPreset || cloudName === 'undefined' || uploadPreset === 'undefined') {
-    const errorMsg = 'Cloudinary config missing or not loaded from environment variables. ' +
-      'Ensure VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET are set in Netlify Site Settings → Environment Variables.';
-    console.error(errorMsg);
+  try {
+    return await uploadFileToSupabase(file, folder);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[UploadFileToStorage Error]', errorMsg);
     throw new Error(errorMsg);
-  }
-
-  // Debug logging to help diagnose configuration issues
-  console.log("CLOUDINARY DEBUG:", {
-    cloudName,
-    uploadPreset,
-    fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-    isImage,
-    router: isLargeFile && !isImage ? 'Supabase fallback' : 'Standard Cloudinary'
-  });
-
-  console.log(`[Cloudinary Upload] Uploading "${file.name}" to cloud: ${cloudName} preset: ${uploadPreset}`);
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', uploadPreset);
-  
-  // Auto-detect resource_type to handle image and ZIP/raw files cleanly
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Cloudinary Upload Error Response]', errorText);
-    throw new Error(`Cloudinary upload failed. Check cloud name and upload preset in Netlify env variables. Status: ${response.status}, Details: ${errorText}`);
-  }
-
-  const data = await response.json();
-  if (data.secure_url) {
-    console.log(`Cloudinary success URL: ${data.secure_url}`);
-    return data.secure_url;
-  } else if (data.url) {
-    console.log(`Cloudinary success URL: ${data.url}`);
-    return data.url;
-  } else {
-    throw new Error('Cloudinary response did not contain a valid URL');
   }
 };
 
@@ -1532,3 +1471,4 @@ export const verifyAndRecordDownload = async (
 };
 
 export { isFirebaseAvailable, isSupabaseAvailable, supabaseClient };
+
